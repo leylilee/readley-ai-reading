@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
+import ReactMarkdown from 'react-markdown'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '../../providers'
 
@@ -60,6 +61,22 @@ export default function ReadPage() {
     window.speechSynthesis?.cancel()
     setSpeaking(null)
   }, [])
+
+  function stripMarkdown(text) {
+    return text
+      .replace(/^#{1,6}\s+/gm, '')          // headings
+      .replace(/\*\*(.+?)\*\*/g, '$1')      // bold **
+      .replace(/__(.+?)__/g, '$1')          // bold __
+      .replace(/\*(.+?)\*/g, '$1')          // italic *
+      .replace(/_(.+?)_/g, '$1')            // italic _
+      .replace(/~~(.+?)~~/g, '$1')          // strikethrough
+      .replace(/`{1,3}[^`]*`{1,3}/g, '')   // inline code / code blocks
+      .replace(/^>\s+/gm, '')               // blockquotes
+      .replace(/^[-*+]\s+/gm, '')           // unordered list markers
+      .replace(/^\d+\.\s+/gm, '')           // ordered list markers
+      .replace(/\[(.+?)\]\(.+?\)/g, '$1')  // links → label only
+      .replace(/!\[.*?\]\(.+?\)/g, '')      // images
+  }
 
   function cleanForSpeech(text) {
     return text
@@ -240,7 +257,7 @@ export default function ReadPage() {
                   </button>
                 ) : (
                   <button
-                    onClick={() => speak(summary, 'summary')}
+                    onClick={() => speak(stripMarkdown(summary), 'summary')}
                     className="flex items-center gap-1.5 text-xs px-3 py-1.5 bg-amber-100 hover:bg-amber-200 text-amber-700 rounded-lg font-medium transition-colors"
                   >
                     🔊 Listen
@@ -248,9 +265,23 @@ export default function ReadPage() {
                 )}
               </div>
 
-              <p className="text-stone-700 text-sm leading-relaxed whitespace-pre-wrap">
+              <ReactMarkdown
+                components={{
+                  h1: ({ children }) => <h1 className="text-base font-bold text-stone-900 mt-4 mb-1">{children}</h1>,
+                  h2: ({ children }) => <h2 className="text-sm font-bold text-stone-900 mt-4 mb-1">{children}</h2>,
+                  h3: ({ children }) => <h3 className="text-sm font-semibold text-stone-800 mt-3 mb-1">{children}</h3>,
+                  p:  ({ children }) => <p className="text-sm text-stone-700 leading-relaxed mb-3 last:mb-0">{children}</p>,
+                  strong: ({ children }) => <strong className="font-semibold text-stone-900">{children}</strong>,
+                  em: ({ children }) => <em className="italic text-stone-600">{children}</em>,
+                  ul: ({ children }) => <ul className="list-disc list-inside space-y-1 mb-3 text-sm text-stone-700">{children}</ul>,
+                  ol: ({ children }) => <ol className="list-decimal list-inside space-y-1 mb-3 text-sm text-stone-700">{children}</ol>,
+                  li: ({ children }) => <li className="leading-relaxed">{children}</li>,
+                  blockquote: ({ children }) => <blockquote className="border-l-4 border-amber-300 pl-4 italic text-stone-500 my-3">{children}</blockquote>,
+                  code: ({ children }) => <code className="bg-stone-100 text-stone-700 px-1 py-0.5 rounded text-xs font-mono">{children}</code>,
+                }}
+              >
                 {summary}
-              </p>
+              </ReactMarkdown>
 
               {speaking === 'summary' && (
                 <div className="mt-3 flex items-center gap-2 text-xs text-amber-600">
