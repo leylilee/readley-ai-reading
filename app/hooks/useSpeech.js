@@ -28,10 +28,28 @@ export function stripMarkdown(text) {
     .replace(/^\d+\.\s+/gm, '')
     .replace(/\[(.+?)\]\(.+?\)/g, '$1')
     .replace(/!\[.*?\]\(.+?\)/g, '')
+    .replace(/_{2,}/g, ' ')   // _____ dividers
+    .replace(/_/g, ' ')       // remaining lone underscores
+}
+
+// Remove lines that repeat many times — catches PDF headers/footers stamped on every page.
+function removeRepeatedLines(text) {
+  const lines = text.split('\n')
+  const counts = {}
+  for (const line of lines) {
+    const t = line.trim()
+    if (t.length > 5) counts[t] = (counts[t] || 0) + 1
+  }
+  // Any non-trivial line appearing 4+ times is treated as a header/footer
+  return lines.filter((line) => {
+    const t = line.trim()
+    return !t || (counts[t] ?? 0) < 4
+  }).join('\n')
 }
 
 function prepareText(raw, isMarkdown) {
-  const text = isMarkdown ? stripMarkdown(raw) : raw
+  const deduped = removeRepeatedLines(raw)
+  const text = isMarkdown ? stripMarkdown(deduped) : deduped
   return text
     .replace(/\n{2,}/g, '. ')
     .replace(/\n/g, ' ')
@@ -111,6 +129,8 @@ export function useSpeech() {
 
   useEffect(() => {
     if (typeof window === 'undefined') return
+    // Cancel any utterances left over from before a page reload
+    window.speechSynthesis.cancel()
 
     function load() {
       const all = window.speechSynthesis.getVoices()
