@@ -38,9 +38,36 @@ export default function DashboardPage() {
     const file = e.target.files[0]
     if (!file) return
     setFileName(file.name)
-    const text = await file.text()
-    setContent(text)
-    if (!title) setTitle(file.name.replace(/\.txt$/i, ''))
+    setFormError('')
+
+    if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+      try {
+        const text = await extractPdfText(file)
+        setContent(text)
+        if (!title) setTitle(file.name.replace(/\.pdf$/i, ''))
+      } catch {
+        setFormError('Could not read this PDF. Try copying the text and pasting it instead.')
+        setFileName('')
+      }
+    } else {
+      const text = await file.text()
+      setContent(text)
+      if (!title) setTitle(file.name.replace(/\.txt$/i, ''))
+    }
+  }
+
+  async function extractPdfText(file) {
+    const pdfjsLib = await import('pdfjs-dist')
+    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`
+    const arrayBuffer = await file.arrayBuffer()
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise
+    const pages = []
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i)
+      const content = await page.getTextContent()
+      pages.push(content.items.map((item) => item.str).join(' '))
+    }
+    return pages.join('\n\n')
   }
 
   function resetForm() {
@@ -122,17 +149,17 @@ export default function DashboardPage() {
 
         <div>
           <label className="block text-sm font-medium text-stone-700 mb-1.5">
-            Upload a .txt file
+            Upload a file
           </label>
           <label className="flex items-center gap-3 px-4 py-3 bg-stone-50 border border-stone-300 border-dashed rounded-xl cursor-pointer hover:bg-amber-50 hover:border-amber-300 transition-colors">
             <span className="text-xl">📄</span>
             <span className="text-sm text-stone-500">
-              {fileName || 'Click to choose a .txt file'}
+              {fileName || 'Click to choose a .txt or .pdf file'}
             </span>
             <input
               ref={fileInputRef}
               type="file"
-              accept=".txt,text/plain"
+              accept=".txt,.pdf,text/plain,application/pdf"
               onChange={handleFileUpload}
               className="hidden"
             />
