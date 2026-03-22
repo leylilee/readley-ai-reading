@@ -39,7 +39,7 @@ export default function ReadPage() {
   const { id } = useParams()
   const { user, loading: authLoading } = useAuth()
   const router = useRouter()
-  const { voices, selectedVoice, setSelectedVoice, speaking, speak, stopSpeech, resumeAt } = useSpeech()
+  const { voices, selectedVoice, setSelectedVoice, speaking, speak, stopSpeech, resumeAt, seekTo } = useSpeech()
 
   const [book, setBook] = useState(null)
   const [pageLoading, setPageLoading] = useState(true)
@@ -47,6 +47,8 @@ export default function ReadPage() {
   const [summary, setSummary] = useState('')
   const [summarizing, setSummarizing] = useState(false)
   const [summaryError, setSummaryError] = useState('')
+  const [bookDragPos, setBookDragPos] = useState(null)
+  const [summaryDragPos, setSummaryDragPos] = useState(null)
 
   useEffect(() => {
     if (!authLoading && !user) router.replace('/login')
@@ -142,6 +144,35 @@ export default function ReadPage() {
               </div>
             )}
 
+            {/* Progress scrubber */}
+            {charCount > 0 && (
+              <div className="space-y-1">
+                <input
+                  type="range"
+                  min={0}
+                  max={charCount}
+                  value={bookDragPos ?? (resumeAt.book ?? 0)}
+                  onChange={(e) => setBookDragPos(Number(e.target.value))}
+                  onMouseUp={(e) => {
+                    const pos = Number(e.target.value)
+                    seekTo('book', pos)
+                    setBookDragPos(null)
+                    if (speaking === 'book') speak(book?.content, 'book')
+                  }}
+                  onTouchEnd={() => {
+                    const pos = bookDragPos ?? (resumeAt.book ?? 0)
+                    seekTo('book', pos)
+                    setBookDragPos(null)
+                    if (speaking === 'book') speak(book?.content, 'book')
+                  }}
+                  className="w-full accent-amber-500 cursor-pointer"
+                />
+                <p className="text-xs text-stone-400 text-right">
+                  {Math.round(((bookDragPos ?? resumeAt.book ?? 0) / charCount) * 100)}%
+                </p>
+              </div>
+            )}
+
             {/* Play controls */}
             {speaking === 'book' ? (
               <button onClick={stopSpeech}
@@ -220,6 +251,33 @@ export default function ReadPage() {
                     </button>
                   )}
                 </div>
+              </div>
+
+              {/* Summary scrubber */}
+              <div className="space-y-1 mb-3">
+                <input
+                  type="range"
+                  min={0}
+                  max={summary.length}
+                  value={summaryDragPos ?? (resumeAt.summary ?? 0)}
+                  onChange={(e) => setSummaryDragPos(Number(e.target.value))}
+                  onMouseUp={(e) => {
+                    const pos = Number(e.target.value)
+                    seekTo('summary', pos)
+                    setSummaryDragPos(null)
+                    if (speaking === 'summary') speak(summary, 'summary', { markdown: true })
+                  }}
+                  onTouchEnd={() => {
+                    const pos = summaryDragPos ?? (resumeAt.summary ?? 0)
+                    seekTo('summary', pos)
+                    setSummaryDragPos(null)
+                    if (speaking === 'summary') speak(summary, 'summary', { markdown: true })
+                  }}
+                  className="w-full accent-amber-500 cursor-pointer"
+                />
+                <p className="text-xs text-stone-400 text-right">
+                  {Math.round(((summaryDragPos ?? resumeAt.summary ?? 0) / summary.length) * 100)}%
+                </p>
               </div>
 
               <ReactMarkdown components={mdComponents}>{summary}</ReactMarkdown>

@@ -219,5 +219,11 @@ export function useSpeech() {
     speakNext()
   }
 
-  return { voices, selectedVoice, setSelectedVoice, speaking, speak, stopSpeech, resumeAt }
+  // Seek to a character offset without restarting speech.
+  // Call speak() immediately after if you want to resume from the new position.
+  function seekTo(source, offset) {
+    setResumeAt((prev) => ({ ...prev, [source]: Math.max(0, offset) }))
+  }
+
+  return { voices, selectedVoice, setSelectedVoice, speaking, speak, stopSpeech, resumeAt, seekTo }
 }
