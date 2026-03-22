@@ -28,8 +28,6 @@ export function stripMarkdown(text) {
     .replace(/^\d+\.\s+/gm, '')
     .replace(/\[(.+?)\]\(.+?\)/g, '$1')
     .replace(/!\[.*?\]\(.+?\)/g, '')
-    .replace(/_{2,}/g, ' ')   // _____ dividers
-    .replace(/_/g, ' ')       // remaining lone underscores
 }
 
 // Remove lines that repeat many times — catches PDF headers/footers stamped on every page.
@@ -51,10 +49,16 @@ function prepareText(raw, isMarkdown) {
   const deduped = removeRepeatedLines(raw)
   const text = isMarkdown ? stripMarkdown(deduped) : deduped
   return text
+    .replace(/_{2,}/g, ' ')   // _____ dividers / blanks
+    .replace(/_/g, ' ')       // remaining lone underscores
     .replace(/\n{2,}/g, '. ')
     .replace(/\n/g, ' ')
     .replace(/[ \t]{2,}/g, ' ')
     .trim()
+}
+
+export function getPreparedLength(rawText, { markdown = false } = {}) {
+  return rawText ? prepareText(rawText, markdown).length : 0
 }
 
 // Split into chunks at sentence boundaries to stay well under Chrome's

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import ReactMarkdown from 'react-markdown'
-import { useSpeech } from '../hooks/useSpeech'
+import { useSpeech, getPreparedLength } from '../hooks/useSpeech'
 
 const CHAR_LIMIT = 3000
 
@@ -77,6 +77,8 @@ export default function GuestReadPage() {
   }
 
   const charCount = book?.content.length ?? 0
+  const bookPreparedLength = getPreparedLength(book?.content ?? '')
+  const summaryPreparedLength = getPreparedLength(summary, { markdown: true })
 
   if (pageLoading) {
     return (
@@ -145,7 +147,7 @@ export default function GuestReadPage() {
                 <input
                   type="range"
                   min={0}
-                  max={charCount}
+                  max={bookPreparedLength}
                   value={bookDragPos ?? (resumeAt.book ?? 0)}
                   onChange={(e) => setBookDragPos(Number(e.target.value))}
                   onMouseUp={(e) => {
@@ -163,7 +165,7 @@ export default function GuestReadPage() {
                   className="w-full accent-amber-500 cursor-pointer"
                 />
                 <p className="text-xs text-stone-400 text-right">
-                  {Math.round(((bookDragPos ?? resumeAt.book ?? 0) / charCount) * 100)}%
+                  {bookPreparedLength > 0 ? Math.round(((bookDragPos ?? resumeAt.book ?? 0) / bookPreparedLength) * 100) : 0}%
                 </p>
               </div>
             )}
@@ -253,7 +255,7 @@ export default function GuestReadPage() {
                 <input
                   type="range"
                   min={0}
-                  max={summary.length}
+                  max={summaryPreparedLength}
                   value={summaryDragPos ?? (resumeAt.summary ?? 0)}
                   onChange={(e) => setSummaryDragPos(Number(e.target.value))}
                   onMouseUp={(e) => {
@@ -271,7 +273,7 @@ export default function GuestReadPage() {
                   className="w-full accent-amber-500 cursor-pointer"
                 />
                 <p className="text-xs text-stone-400 text-right">
-                  {Math.round(((summaryDragPos ?? resumeAt.summary ?? 0) / summary.length) * 100)}%
+                  {summaryPreparedLength > 0 ? Math.round(((summaryDragPos ?? resumeAt.summary ?? 0) / summaryPreparedLength) * 100) : 0}%
                 </p>
               </div>
 
